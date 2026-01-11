@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Test Suite | ROM - Kernel - Recovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 font-sans">
+
+    <div class="max-w-xl mx-auto bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
+        
+        <div class="p-6 border-b border-gray-700 bg-gray-800/50">
+            <h1 class="text-xl font-bold text-blue-400">Android Test Suite</h1>
+            <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest">Quality Assurance Documenter</p>
+        </div>
+
+        <div id="step-setup" class="p-6 space-y-4">
+            <h2 class="text-lg font-semibold text-gray-200">1. Project Information</h2>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Telegram Username</label>
+                <input type="text" id="tgUser" placeholder="@username" class="w-full bg-gray-700 p-3 rounded-lg border border-gray-600 outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">ROM / Kernel Name</label>
+                <input type="text" id="romName" placeholder="e.g. LineageOS 21.0" class="w-full bg-gray-700 p-3 rounded-lg border border-gray-600 outline-none focus:border-blue-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Target Device</label>
+                    <select id="deviceSelect" class="w-full bg-gray-700 p-3 rounded-lg border border-gray-600">
+                        <option value="Generic">Generic Device</option>
+                        <option value="POCO F3">POCO F3 (alioth)</option>
+                        <option value="Redmi Note 10 Pro">Redmi Note 10 Pro (sweet)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Test Type</label>
+                    <select id="testType" class="w-full bg-gray-700 p-3 rounded-lg border border-gray-600">
+                        <option value="ROM">Custom ROM</option>
+                        <option value="Kernel">Kernel</option>
+                        <option value="Recovery">Recovery</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="startTesting()" class="w-full bg-blue-600 p-4 rounded-xl font-bold hover:bg-blue-700 transition mt-4">START TESTING</button>
+        </div>
+
+        <div id="step-testing" class="hidden p-6">
+            <div class="flex justify-between items-center mb-6">
+                <span id="pageIndicator" class="text-sm font-mono text-blue-400">Item 1 / 10</span>
+                <span id="saveStatus" class="text-green-500 text-[10px] uppercase font-bold italic opacity-0 transition-opacity">Auto-Saved</span>
+            </div>
+
+            <h2 id="currentQuestion" class="text-2xl font-bold mb-4 tracking-tight">Feature Name</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1 uppercase font-bold">Status</label>
+                    <select id="currentStatus" onchange="saveCurrentData()" class="w-full bg-gray-700 p-3 rounded-lg border border-gray-600 text-white">
+                        <option value="Not Tested">⚪ Not Tested</option>
+                        <option value="Working">✅ Working</option>
+                        <option value="Bug">❌ Bug</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1 uppercase font-bold">Comments / Bug Details</label>
+                    <textarea id="currentComment" oninput="saveCurrentData()" placeholder="Describe any issues or notes..." class="w-full bg-gray-700 p-3 rounded-lg border border-gray-600 h-24 outline-none focus:border-blue-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1 uppercase font-bold">Evidence (Optional Photo)</label>
+                    <input type="file" id="currentPhoto" accept="image/*" onchange="handlePhotoUpload(this)" class="text-xs text-gray-400 block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                    <div id="photoPreviewContainer" class="mt-4 hidden">
+                        <p class="text-[10px] text-gray-500 mb-1">Image Preview:</p>
+                        <img id="imagePreview" src="#" alt="Preview" class="max-h-40 rounded-lg border border-gray-600 mx-auto">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-8">
+                <button id="prevBtn" onclick="prevQuestion()" class="flex-1 bg-gray-700 p-3 rounded-lg font-bold hover:bg-gray-600">BACK</button>
+                <button id="nextBtn" onclick="nextQuestion()" class="flex-1 bg-blue-600 p-3 rounded-lg font-bold hover:bg-blue-700">NEXT</button>
+            </div>
+        </div>
+
+        <div id="step-finish" class="hidden p-6 text-center space-y-6">
+            <h2 class="text-2xl font-bold text-green-400">All Done!</h2>
+            <p class="text-sm text-gray-400">Test results have been recorded. You can now upload the main system log (Logcat/Dmesg) to include it in the package.</p>
+            
+            <div class="text-left bg-gray-900 p-4 rounded-lg">
+                <label class="block text-xs text-gray-400 mb-2 font-bold uppercase">Main System Log File</label>
+                <input type="file" id="mainLog" class="text-sm text-gray-400 w-full">
+            </div>
+
+            <button onclick="generateZip()" class="w-full bg-green-600 p-4 rounded-xl font-bold hover:bg-green-700 shadow-lg transition transform hover:scale-[1.02]">DOWNLOAD RESULT (.ZIP)</button>
+            <button onclick="resetData()" class="text-red-500 text-xs block mx-auto underline hover:text-red-400">Clear all and restart</button>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            "Generic": ["RIL (Signal/Data)", "Wi-Fi", "Bluetooth", "Camera", "Audio & Mic", "Flashlight", "GPS", "Biometrics", "Video Playback", "Charging"],
+            "POCO F3": ["120Hz Refresh Rate", "Dolby Atmos", "Proximity Sensor", "MEMC", "Dual Speakers", "Wi-Fi 6", "NFC"],
+            "Redmi Note 10 Pro": ["108MP Camera Mode", "Headphone Jack", "SD Card Slot", "120Hz Display", "33W Fast Charging"]
+        };
+
+        let currentDevice = "Generic";
+        let questions = [];
+        let currentIndex = 0;
+        let testData = {}; 
+
+        function startTesting() {
+            const rom = document.getElementById('romName').value;
+            if(!rom) return alert("Please enter the ROM/Kernel name!");
+            
+            currentDevice = document.getElementById('deviceSelect').value;
+            questions = config[currentDevice];
+            
+            questions.forEach(q => {
+                if(!testData[q]) testData[q] = { status: "Not Tested", comment: "", photo: null };
+            });
+
+            document.getElementById('step-setup').classList.add('hidden');
+            document.getElementById('step-testing').classList.remove('hidden');
+            updatePage();
+        }
+
+        function handlePhotoUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    const container = document.getElementById('photoPreviewContainer');
+                    preview.src = e.target.result;
+                    container.classList.remove('hidden');
+                    
+                    const q = questions[currentIndex];
+                    testData[q].photo = input.files[0];
+                    saveCurrentData();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function updatePage() {
+            const q = questions[currentIndex];
+            document.getElementById('currentQuestion').innerText = q;
+            document.getElementById('pageIndicator').innerText = `Item ${currentIndex + 1} / ${questions.length}`;
+            
+            // Load values
+            document.getElementById('currentStatus').value = testData[q].status;
+            document.getElementById('currentComment').value = testData[q].comment;
+
+            // Handle Preview Visibility
+            const container = document.getElementById('photoPreviewContainer');
+            const preview = document.getElementById('imagePreview');
+            if(testData[q].photo) {
+                const reader = new FileReader();
+                reader.onload = (e) => { 
+                    preview.src = e.target.result;
+                    container.classList.remove('hidden');
+                };
+                reader.readAsDataURL(testData[q].photo);
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('currentPhoto').value = "";
+            }
+
+            document.getElementById('nextBtn').innerText = (currentIndex === questions.length - 1) ? "FINISH" : "NEXT";
+        }
+
+        function saveCurrentData() {
+            const q = questions[currentIndex];
+            testData[q].status = document.getElementById('currentStatus').value;
+            testData[q].comment = document.getElementById('currentComment').value;
+            
+            // Show auto-save indicator
+            const statusLabel = document.getElementById('saveStatus');
+            statusLabel.classList.remove('opacity-0');
+            setTimeout(() => statusLabel.classList.add('opacity-0'), 1000);
+
+            localStorage.setItem('android_tester_v2', JSON.stringify({
+                tgUser: document.getElementById('tgUser').value,
+                romName: document.getElementById('romName').value,
+                device: currentDevice,
+                type: document.getElementById('testType').value,
+                results: testData
+            }));
+        }
+
+        function nextQuestion() {
+            saveCurrentData();
+            if(currentIndex < questions.length - 1) {
+                currentIndex++;
+                updatePage();
+            } else {
+                document.getElementById('step-testing').classList.add('hidden');
+                document.getElementById('step-finish').classList.remove('hidden');
+            }
+        }
+
+        function prevQuestion() {
+            if(currentIndex > 0) {
+                currentIndex--;
+                updatePage();
+            } else {
+                document.getElementById('step-testing').classList.add('hidden');
+                document.getElementById('step-setup').classList.remove('hidden');
+            }
+        }
+
+        async function generateZip() {
+            const zip = new JSZip();
+            const date = new Date().toISOString().split('T')[0];
+            const tg = document.getElementById('tgUser').value || "Unknown";
+            const rom = document.getElementById('romName').value;
+            const type = document.getElementById('testType').value;
+            
+            let report = `=== ANDROID TEST REPORT ===\n`;
+            report += `Tester: ${tg}\nDevice: ${currentDevice}\nType: ${type}\nROM: ${rom}\nDate: ${date}\n`;
+            report += `============================\n\n`;
+            
+            const imgFolder = zip.folder("screenshots");
+
+            for (const q of questions) {
+                const item = testData[q];
+                report += `[${item.status.toUpperCase()}] ${q}\n`;
+                report += `Comment: ${item.comment || "No comment"}\n`;
+                
+                if(item.photo) {
+                    const ext = item.photo.name.split('.').pop();
+                    const photoName = `${q.replace(/\s+/g, '_')}.${ext}`;
+                    imgFolder.file(photoName, item.photo);
+                    report += `Attached: screenshots/${photoName}\n`;
+                }
+                report += `----------------------------\n`;
+            }
+
+            zip.file("test_summary.txt", report);
+            
+            const mainLog = document.getElementById('mainLog').files[0];
+            if(mainLog) zip.file(`logs/${mainLog.name}`, mainLog);
+
+            const content = await zip.generateAsync({type:"blob"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            const fileName = `${rom.replace(/\s+/g, '_')}-${date}-${type.toLowerCase()}.zip`;
+            link.download = fileName;
+            link.click();
+        }
+
+        function resetData() {
+            if(confirm("Are you sure? This will delete all current progress.")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
